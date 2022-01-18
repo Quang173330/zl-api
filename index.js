@@ -21,7 +21,7 @@ mongoose.connect(MONGO_URI, {
         console.log(err);
     })
 // use middleware to parse body req to json
-app.use(express.json());
+app.use(express.json({ limit: '50MB' }));
 
 // use middleware to enable cors
 app.use(cors());

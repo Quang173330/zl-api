@@ -7,6 +7,7 @@ const MessagesModel = require("../models/Messages");
 const UserModel = require("../models/Users");
 const httpStatus = require("../utils/httpStatus");
 const chatController = {};
+const mongoose = require('mongoose');
 chatController.send = async (req, res, next) => {
     try {
         let userId = req.userId;
@@ -28,11 +29,11 @@ chatController.send = async (req, res, next) => {
                 }
             } else {
                 chat = new ChatModel({
-                   type: PRIVATE_CHAT,
-                   member: [
-                       receivedId,
-                       userId
-                   ]
+                    type: PRIVATE_CHAT,
+                    member: [
+                        receivedId,
+                        userId
+                    ]
                 });
                 await chat.save();
                 chatIdSend = chat._id;
@@ -105,7 +106,7 @@ chatController.getListChats = async (req, res, next) => {
         let listUser = await ChatModel.find({
             "member": userId
         });
-        let result = listUser.map( (data) => {
+        let result = listUser.map((data) => {
             const test = {};
             test["userId"] = "";
             test["id"] = "";
@@ -115,12 +116,12 @@ chatController.getListChats = async (req, res, next) => {
             test["cover_image"] = "";
             test["lastcontent"] = "";
             return test;
-        } 
-        
+        }
+
             // = "userId",
             // data.name = "id"
         );
-        for(let i=0; i<listUser.length; i++) {
+        for (let i = 0; i < listUser.length; i++) {
             result[i].userId = listUser[i].member[0] == userId ? listUser[i].member[1] : listUser[i].member[0];
             result[i].id = listUser[i]._id;
             result[i].time = listUser[i].updatedAt;
@@ -128,13 +129,13 @@ chatController.getListChats = async (req, res, next) => {
             result[i].username = user.username;
             result[i].avatar = user.avatar;
             result[i].cover_image = user.cover_image;
-            let lastContent = await MessagesModel.find( {
+            let lastContent = await MessagesModel.find({
                 chat: listUser[i]._id
             })
             let content = lastContent.map(data => {
                 return data.content;
             });
-            result[i].lastContent = content[content.length-1];
+            result[i].lastContent = content[content.length - 1];
         }
         result.reverse();
         return res.status(httpStatus.OK).json({
@@ -145,6 +146,28 @@ chatController.getListChats = async (req, res, next) => {
             message: e.message
         });
     }
+}
+
+chatController.getChatId = async (req, res, next) => {
+    let chat = await ChatModel.findOne({ member: { $all: [mongoose.Types.ObjectId(req.userId), mongoose.Types.ObjectId(req.body.partnerId)] } })
+    if (chat) {
+        return res.status(httpStatus.OK).json({
+            data: chat,
+        });
+    } else {
+        chat = new ChatModel({
+            type: PRIVATE_CHAT,
+            member: [
+                req.userId,
+                req.body.partnerId,
+            ]
+        });
+        await chat.save();
+        return res.status(httpStatus.OK).json({
+            data: chat,
+        });
+    }
+
 }
 
 module.exports = chatController;
